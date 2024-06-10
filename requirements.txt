@@ -1,0 +1,6 @@
+py-cord
+py-cord[speed]
+py-cord[voice]
+python-dotenv
+requests
+msgspec
