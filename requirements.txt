@@ -4,3 +4,4 @@ py-cord[voice]
 python-dotenv
 requests
 msgspec
+aiodatalite

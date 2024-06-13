@@ -1,6 +1,7 @@
 import discord
 
 from .. import PensionBot
+from ..exceptions import NotConnectedException
 
 
 class StopCog(discord.Cog):
@@ -9,7 +10,14 @@ class StopCog(discord.Cog):
 
     @discord.command()
     async def stop(self, context: discord.context.ApplicationContext):
-        await self.pension_bot._voice_clients[context.author.id].disconnect()
+        author = context.author
+        voice = author.voice
+
+        if not voice:
+            raise NotConnectedException
+
+        await self.pension_bot._voice_clients[author.id].disconnect()
+        await context.respond(embed=discord.Embed(description="Stopped"))
 
 
 def setup(pension_bot: PensionBot):

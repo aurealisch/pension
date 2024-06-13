@@ -12,7 +12,7 @@ class PensionBot(discord.Bot):
         self._voice_clients: dict[str, discord.VoiceClient] = {}
 
     def run(self) -> None:
-        for extension in ["play", "stop"]:
-            self.load_extension(f"src.PensionBot.cogs.{extension}")
+        for cog in ["play", "stop", "on_voice_state_update"]:
+            self.load_extension(f"src.PensionBot.cogs.{cog}")
 
-        return super().run(os.getenv("TOKEN"))
+        return super().run(os.getenv("PENSION_BOT_TOKEN"))

@@ -7,10 +7,9 @@ import requests
 
 
 class Station(msgspec.Struct):
+    stationuuid: str
     name: str
     url: str
-    favicon: str
-    homepage: str
 
 
 class RadioBrowserAPI:
@@ -23,17 +22,18 @@ class RadioBrowserAPI:
             "all.api.radio-browser.info", port=80, proto=socket.IPPROTO_TCP
         )
 
-        for ip_tupple in ips:
-            ip = ip_tupple[4][0]
-            host_addr = socket.gethostbyaddr(ip)
+        for ip in ips:
+            ip_address = ip[4][0]
+            host = socket.gethostbyaddr(ip_address)[0]
 
-            if host_addr[0] not in hosts:
-                hosts.append(host_addr[0])
+            if host not in hosts:
+                hosts.append(host)
 
         return f"https://{random.choice(hosts)}/json"
 
-    def search(self, name: str) -> Station:
+    def search(self, name: str):
         response = requests.get(
-            f"{self.base_url}/stations/byname/{name}", params={"limit": 1}
+            f"{self.base_url}/stations/byname/{name}", params={"limit": 25}
         )
-        return msgspec.json.decode(response.text, type=typing.List[Station])[0]
+
+        return msgspec.json.decode(response.text, type=typing.List[Station])

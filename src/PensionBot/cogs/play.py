@@ -1,6 +1,49 @@
 import discord
 
 from .. import PensionBot
+from ..exceptions import NotConnectedException
+from ..modules.radio_browser_api import Station
+
+
+class SelectStation(discord.ui.Select):
+    def __init__(self, stations: list[Station], pension_bot: PensionBot) -> None:
+        options = map(
+            lambda station: discord.SelectOption(
+                label=station.name, value=station.stationuuid
+            ),
+            stations,
+        )
+        super().__init__(placeholder="Select a station", options=options)
+        self.stations = stations
+        self.pension_bot = pension_bot
+
+    async def callback(self, interaction: discord.Interaction):
+        user = interaction.user
+        user_id = user.id
+        user_voice = user.voice
+
+        if not user_voice:
+            raise NotConnectedException
+
+        stations_uuids = {station.stationuuid: station for station in self.stations}
+        station = stations_uuids[self.values[0]]
+
+        voice_clients = self.pension_bot._voice_clients
+
+        if user_id in voice_clients:
+            voice_client = voice_clients[user_id]
+            voice_client.stop()
+        else:
+            voice_client = await user_voice.channel.connect()
+            voice_clients[user_id] = voice_client
+
+        voice_client.play(discord.FFmpegOpusAudio(station.url, executable="bin/ffmpeg"))
+
+        await interaction.response.edit_message(
+            embed=discord.Embed(
+                description=f"Now playing: **`{station.name}`**",
+            ),
+        )
 
 
 class PlayCog(discord.Cog):
@@ -13,24 +56,12 @@ class PlayCog(discord.Cog):
         context: discord.context.ApplicationContext,
         name: discord.Option(discord.SlashCommandOptionType.string),  # type: ignore
     ):
-        station = self.pension_bot.radio_browser_api.search(name)
+        pension_bot = self.pension_bot
+        stations = pension_bot.radio_browser_api.search(name)
 
-        author = context.author
-        voice = author.voice
-
-        if not voice:
-            return
-
-        voice_client = await voice.channel.connect()
-        voice_client.play(discord.FFmpegOpusAudio(station.url, executable="bin/ffmpeg"))
-
-        self.pension_bot._voice_clients[author.id] = voice_client
-
-        embed = discord.Embed(
-            description=f"Сейчас играет `{station.name}`", thumbnail=station.favicon
+        await context.respond(
+            view=discord.ui.View(SelectStation(stations, pension_bot))
         )
-
-        await context.respond(embed=embed)
 
 
 def setup(pension_bot: PensionBot):
